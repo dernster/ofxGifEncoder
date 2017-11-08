@@ -16,27 +16,27 @@
 #pragma once
 
 class ofxGifEncoder: public ofThread {
-    public:     
-        
+    public:
+
         ofxGifEncoder();
         ~ofxGifEncoder();
-    
+
         void setup(int _w, int _h, float _frameDuration = 0.1f, int _nColors = 256 );
         void setNumColors(int _nColors = 256);
         void setDitherMode(int _ditherMode = OFX_GIF_DITHER_FS);
         void setFrameDuration(float _duration); // for all gifs;
-        
+
         static ofEvent<string>	OFX_GIF_SAVE_FINISHED;
 
         // thread saving
         // blocking, verbose
-        void start() {startThread(true, false);}
+        void start() {startThread();}
         void stop() {stopThread();}
         void exit();
 		void reset();
-        
+
         // if no duration is specified, we'll use default (from setup())
-        void addFrame(ofImage & image, float duration = 0.f);        
+        void addFrame(ofImage & image, float duration = 0.f);
         void addFrame(unsigned char * px, int _w, int _h, int _bitsPerPixel = 24, float duration = 0.f);
 
         static ofxGifFrame * createGifFrame(unsigned char * px, int _w, int _h, int _bitsPerPixel = 24, float duration = 0.1f);
@@ -62,7 +62,6 @@ class ofxGifEncoder: public ofThread {
         int bitsPerPixel;
         int nChannels;
         int ditherMode;
-    
-    
-};
 
+
+};

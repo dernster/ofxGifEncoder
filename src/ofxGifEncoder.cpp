@@ -22,7 +22,7 @@ void ofxGifEncoder::setup(int _w, int _h,  float _frameDuration, int _nColors){
     }
     w       = _w;
     h       = _h;
-    
+
     frameDuration   = _frameDuration;
     nColors         = _nColors;
     bitsPerPixel    = 0;
@@ -39,7 +39,7 @@ ofxGifEncoder::~ofxGifEncoder() {}
 ofxGifFrame * ofxGifEncoder::createGifFrame(unsigned char * px, int _w, int _h, int _bitsPerPixel, float _duration ) {
     ofxGifFrame * gf    = new ofxGifFrame();
     gf->pixels          = px;
-    gf->width           = _w; 
+    gf->width           = _w;
     gf->height          = _h;
     gf->duration        = _duration;
     gf->bitsPerPixel    = _bitsPerPixel;
@@ -48,12 +48,12 @@ ofxGifFrame * ofxGifEncoder::createGifFrame(unsigned char * px, int _w, int _h, 
 
 void ofxGifEncoder::addFrame(ofImage & img, float _duration) {
 
-    if(img.width != w || img.height != h) {
+    if(img.getWidth() != w || img.getHeight() != h) {
         ofLog(OF_LOG_WARNING, "ofxGifEncoder::addFrame image dimensions don't match, skipping frame");
         return;
     }
-    
-    addFrame(img.getPixels(), w, h, img.bpp,  _duration);
+
+    addFrame(img.getPixels().getData(), w, h, img.getPixels().getBitsPerPixel(),  _duration);
 }
 
 void ofxGifEncoder::addFrame(unsigned char *px, int _w, int _h, int _bitsPerPixel, float _duration) {
@@ -61,21 +61,21 @@ void ofxGifEncoder::addFrame(unsigned char *px, int _w, int _h, int _bitsPerPixe
         ofLog(OF_LOG_WARNING, "ofxGifEncoder::addFrame image dimensions don't match, skipping frame");
         return;
     }
-    
+
     float tempDuration = _duration;
-    if (tempDuration == 0.f) tempDuration = frameDuration; 
-    
+    if (tempDuration == 0.f) tempDuration = frameDuration;
+
     nChannels = 0;
     switch (_bitsPerPixel) {
         case 8:     nChannels = 1;      break;
         case 24:    nChannels = 3;      break;
         case 32:    nChannels = 4;      break;
-        default:             
+        default:
             ofLog(OF_LOG_WARNING, "bitsPerPixel should be 8, 24 or 32. skipping frame");
             return;
             break;
     }
-    
+
     unsigned char * temp = new unsigned char[w * h * nChannels];
     memcpy(temp, px, w * h * nChannels);
     ofxGifFrame * gifFrame   = ofxGifEncoder::createGifFrame(temp, w, h, _bitsPerPixel, tempDuration) ;
@@ -114,7 +114,7 @@ void ofxGifEncoder::save (string _fileName) {
 void ofxGifEncoder::threadedFunction() {
 	while( isThreadRunning() != 0 ) {
 		if( lock() ){
-            
+
             if(bSaving) {
                 doSave();
                 bSaving = false;
@@ -134,13 +134,13 @@ void ofxGifEncoder::doSave() {
         ofxGifFrame * currentFrame = frames[i];
         processFrame(currentFrame, multi);
     }
-	FreeImage_CloseMultiBitmap(multi); 
-    
+	FreeImage_CloseMultiBitmap(multi);
+
 }
 
 void ofxGifEncoder::calculatePalette(FIBITMAP * bmp){
     RGBQUAD *pal = FreeImage_GetPalette(bmp);
-    
+
     for (int i = 0; i < 256; i++) {
         palette.push_back(ofColor(pal[i].rgbRed, pal[i].rgbGreen, pal[i].rgbBlue));
         ofLog() << palette.at(i);
@@ -154,7 +154,7 @@ int ofxGifEncoder::getClosestToGreenScreenPaletteColorIndex(){
     int closestIndex = 0;
     ofVec3f greenScreenVec(greenScreenColor.r, greenScreenColor.g, greenScreenColor.b);
     for (int i = 0; i < palette.size(); i++) {
-        
+
         ofVec3f currentVec(palette.at(i).r, palette.at(i).g, palette.at(i).b);
         float currentDistance = currentVec.distance(greenScreenVec);
         if (currentDistance < minDistance){
@@ -163,26 +163,26 @@ int ofxGifEncoder::getClosestToGreenScreenPaletteColorIndex(){
         }
     }
     return closestIndex;
-    
+
 }
 
 void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
     FIBITMAP * bmp = NULL;
     // we need to swap the channels if we're on little endian (see ofImage::swapRgb);
 
-    
+
     if (frame->bitsPerPixel ==32){
         ofLog() << "image is transaprent!";
         frame = convertTo24BitsWithGreenScreen(frame);
     }
-    
+
 #ifdef TARGET_LITTLE_ENDIAN
     swapRgb(frame);
 #endif
-    
-    
+
+
     // from here on, we can only deal with 24 bits
-    
+
     // get the pixel data
     bmp	= FreeImage_ConvertFromRawBits(
                                        frame->pixels,
@@ -192,36 +192,36 @@ void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
                                        frame->bitsPerPixel,
                                        0, 0, 0, true // in of006 this (topdown) had to be false.
                                        );
-    
+
     FIBITMAP * bmpConverted;
-    
+
 #ifdef TARGET_LITTLE_ENDIAN
     swapRgb(frame);
 #endif
-    
+
     FIBITMAP * quantizedBmp = NULL;
     FIBITMAP * ditheredBmp  = NULL;
     FIBITMAP * processedBmp = NULL;
-    
-    
+
+
     quantizedBmp = FreeImage_ColorQuantizeEx(bmp, FIQ_WUQUANT, nColors);
     processedBmp = quantizedBmp;
-    
+
     if (nChannels == 4){
         calculatePalette(processedBmp);
         FreeImage_SetTransparentIndex(processedBmp,getClosestToGreenScreenPaletteColorIndex());
     }
 
 
-    
+
     // dithering :)
     if(ditherMode > OFX_GIF_DITHER_NONE) {
         ditheredBmp = FreeImage_Dither(processedBmp, (FREE_IMAGE_DITHER)ditherMode);
         processedBmp = ditheredBmp;
     }
-    
+
     DWORD frameDuration = (DWORD) (frame->duration * 1000.f);
-    
+
     // clear any animation metadata used by this dib as we’ll adding our own ones
     FreeImage_SetMetadata(FIMD_ANIMATION, processedBmp, NULL, NULL);
     // add animation tags to dib[frameNum]
@@ -235,14 +235,14 @@ void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
         FreeImage_SetMetadata(FIMD_ANIMATION, processedBmp, FreeImage_GetTagKey(tag), tag);
         FreeImage_DeleteTag(tag);
     }
-    
+
     FreeImage_AppendPage(multi, processedBmp);
-    
+
     // clear freeimage stuff
     if(bmp          != NULL) FreeImage_Unload(bmp);
     if(quantizedBmp != NULL) FreeImage_Unload(quantizedBmp);
     if(ditheredBmp  != NULL) FreeImage_Unload(ditheredBmp);
-    
+
     // no need to unload processedBmp, as it points to either of the above
 
 }
@@ -252,9 +252,9 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
 
     int width = frame->width;
     int height = frame->height;
-    
+
     unsigned char * newPixels = new unsigned char [width * height * 3];
-    
+
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
             ofColor c(
@@ -263,7 +263,7 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
                       frame->pixels[(j * width + i) * 4 + 2],
                       frame->pixels[(j * width + i) * 4 + 3]
                       );
-            
+
             float normalAlpha = c.a / 255.f;
             float inverseAlpha = 1.f - normalAlpha ;
 
@@ -272,19 +272,19 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
                              c.g * normalAlpha + (otherColor.g * inverseAlpha),
                              c.b * normalAlpha + (otherColor.b *inverseAlpha)
                              );
-            
+
             newPixels[(j * width + i) * 3 + 0] = newColor.r;
             newPixels[(j * width + i) * 3 + 1] = newColor.g;
             newPixels[(j * width + i) * 3 + 2] = newColor.b;
         }
-       
+
     }
 
     ofxGifFrame * newFrame = ofxGifEncoder::createGifFrame(newPixels, width, height, 24, frame->duration);
     return newFrame;
 }
 
- 
+
 // from ofimage
 //----------------------------------------------------
 void ofxGifEncoder::swapRgb(ofxGifFrame * pix){
@@ -293,7 +293,7 @@ void ofxGifEncoder::swapRgb(ofxGifFrame * pix){
 		int cnt				= 0;
 		unsigned char temp;
 		int byteCount		= pix->bitsPerPixel/8;
-        
+
 		while (cnt < sizePixels){
 			temp                            = pix->pixels[cnt*byteCount];
 			pix->pixels[cnt*byteCount]		= pix->pixels[cnt*byteCount+2];
@@ -318,5 +318,3 @@ void ofxGifEncoder::reset() {
     }
     frames.clear();
 }
-
-
