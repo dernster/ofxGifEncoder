@@ -255,6 +255,8 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
 
     unsigned char * newPixels = new unsigned char [width * height * 3];
 
+    std::cout << "el diego re loco" << std::endl;
+
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
             ofColor c(
@@ -264,8 +266,8 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
                       frame->pixels[(j * width + i) * 4 + 3]
                       );
 
-            float normalAlpha = c.a / 255.f;
-            float inverseAlpha = 1.f - normalAlpha ;
+            float normalAlpha = 1.f;//c.a / 255.f;
+            float inverseAlpha = 0;//1.f - normalAlpha ;
 
             ofColor newColor(
                              c.r * normalAlpha + (otherColor.r * inverseAlpha) ,
