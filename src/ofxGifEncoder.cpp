@@ -208,8 +208,8 @@ void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
     processedBmp = quantizedBmp;
 
     if (nChannels == 4){
-        calculatePalette(processedBmp);
-        FreeImage_SetTransparentIndex(processedBmp,getClosestToGreenScreenPaletteColorIndex());
+        // calculatePalette(processedBmp);
+        // FreeImage_SetTransparentIndex(processedBmp,getClosestToGreenScreenPaletteColorIndex());
     }
 
 
@@ -275,9 +275,9 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
                              c.b * normalAlpha + (otherColor.b *inverseAlpha)
                              );
 
-            newPixels[(j * width + i) * 3 + 0] = newColor.r;
-            newPixels[(j * width + i) * 3 + 1] = newColor.g;
-            newPixels[(j * width + i) * 3 + 2] = newColor.b;
+            newPixels[(j * width + i) * 3 + 0] = c.r;//newColor.r;
+            newPixels[(j * width + i) * 3 + 1] = c.g;//newColor.g;
+            newPixels[(j * width + i) * 3 + 2] = c.b;//newColor.b;
         }
 
     }
