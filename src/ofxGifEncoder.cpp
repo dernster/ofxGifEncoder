@@ -112,19 +112,11 @@ void ofxGifEncoder::save (string _fileName) {
 
 //--------------------------------------------------------------
 void ofxGifEncoder::threadedFunction() {
-	while( isThreadRunning() != 0 ) {
-		if( lock() ){
-
-            if(bSaving) {
-                doSave();
-                bSaving = false;
-                ofNotifyEvent(OFX_GIF_SAVE_FINISHED, fileName, this);
-            }
-
-			unlock();
-			ofSleepMillis(10);
-		}
-	}
+    if(bSaving) {
+        doSave();
+        bSaving = false;
+        ofNotifyEvent(OFX_GIF_SAVE_FINISHED, fileName, this);
+    }
 }
 
 void ofxGifEncoder::doSave() {
@@ -169,11 +161,12 @@ int ofxGifEncoder::getClosestToGreenScreenPaletteColorIndex(){
 void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
     FIBITMAP * bmp = NULL;
     // we need to swap the channels if we're on little endian (see ofImage::swapRgb);
-
+    bool hasToDeleteConvertedFrame = false;
 
     if (frame->bitsPerPixel ==32){
         ofLog() << "image is transaprent!";
         frame = convertTo24BitsWithGreenScreen(frame);
+        hasToDeleteConvertedFrame = true;
     }
 
 #ifdef TARGET_LITTLE_ENDIAN
@@ -244,6 +237,10 @@ void ofxGifEncoder::processFrame(ofxGifFrame * frame, FIMULTIBITMAP *multi){
     if(ditheredBmp  != NULL) FreeImage_Unload(ditheredBmp);
 
     // no need to unload processedBmp, as it points to either of the above
+    if (hasToDeleteConvertedFrame) {
+      delete frame->pixels;
+      delete frame;
+    }
 
 }
 
@@ -254,8 +251,6 @@ ofxGifFrame * ofxGifEncoder::convertTo24BitsWithGreenScreen(ofxGifFrame * frame)
     int height = frame->height;
 
     unsigned char * newPixels = new unsigned char [width * height * 3];
-
-    std::cout << "el diego re loco" << std::endl;
 
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
